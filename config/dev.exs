@@ -49,6 +49,16 @@ config :blackbeard_web, BlackbeardWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+# Watch static and templates for browser reloading.
+config :blackbeard_web, BlackbeardWeb.Endpoint,
+  live_reload: [
+    patterns: [
+      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$",
+      ~r"lib/blackbeard_web/(controllers|live|components|views|templates)/.*(ex|heex)$"
+    ]
+  ]
+
 # Enable dev routes for dashboard and mailbox
 config :blackbeard_web, dev_routes: true
 

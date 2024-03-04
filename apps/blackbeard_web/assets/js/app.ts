@@ -1,5 +1,5 @@
-// import "phoenix_html";
+import { PhoenixLiveSocket } from "./lib/liveSocket"
 
-// import { initLiveSocket } from "./lib/liveSocket";
+const liveSocket = new PhoenixLiveSocket();
 
-// initLiveSocket();
+liveSocket.initialize();

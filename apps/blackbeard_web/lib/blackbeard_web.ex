@@ -26,6 +26,7 @@ defmodule BlackbeardWeb do
       # Import common connection and controller functions to use in pipelines
       import Plug.Conn
       import Phoenix.Controller
+      import Phoenix.LiveView.Router
     end
   end
 
@@ -38,13 +39,39 @@ defmodule BlackbeardWeb do
   def controller do
     quote do
       use Phoenix.Controller,
-        formats: [:html, :json],
-        layouts: [html: BlackbeardWeb.Layouts]
+        namespace: BlackbeardWeb
+
+      # formats: [:html, :json],
+      # layouts: [html: BlackbeardWeb.Layouts]
 
       import Plug.Conn
       import BlackbeardWeb.Gettext
 
       unquote(verified_routes())
+    end
+  end
+
+  def view do
+    quote do
+      use Phoenix.View,
+        root: "lib/blackbeard_web/templates",
+        namespace: BlackbeardWeb
+
+      import Phoenix.Controller, only: [view_module: 1]
+      import Phoenix.HTML
+      import Phoenix.HTML.Form
+
+      use Phoenix.Component
+      use PhoenixHTMLHelpers
+
+      unquote(verified_routes())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
+        layout: {BlackbeardWeb.LayoutView, :root}
     end
   end
 
@@ -62,5 +89,9 @@ defmodule BlackbeardWeb do
   """
   defmacro __using__(which) when is_atom(which) do
     apply(__MODULE__, which, [])
+  end
+
+  defmacro __using__([{which, opts}]) when is_atom(which) do
+    apply(__MODULE__, which, [List.wrap(opts)])
   end
 end
