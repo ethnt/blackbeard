@@ -80,11 +80,6 @@
               options = [ "format" ];
               includes = [ "*.ex" "*.exs" ];
             };
-            just = {
-              command = lib.getExe pkgs.just;
-              options = [ "--unstable" "--fmt" "-f" ];
-              includes = [ "Justfile" ];
-            };
           };
         };
       };
