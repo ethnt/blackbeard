@@ -39,7 +39,7 @@ defmodule Blackbeard.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.10"},
-      {:postgrex, ">= 0.0.0"},
+      {:ecto_sqlite3, ">= 0.0.0"},
       {:jason, "~> 1.2"},
       {:swoosh, "~> 1.5"},
       {:finch, "~> 0.13"}
@@ -52,7 +52,7 @@ defmodule Blackbeard.MixProject do
   defp aliases do
     [
       setup: ["deps.get", "ecto.setup"],
-      "ecto.setup": ["ecto.create", "ecto.migrate", "run priv/repo/seeds.exs"],
+      "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
       test: ["ecto.create --quiet", "ecto.migrate --quiet", "test"]
     ]

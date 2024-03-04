@@ -42,7 +42,7 @@ config :esbuild,
   version: "0.17.11",
   blackbeard_web: [
     args:
-      ~w(js/app.js --bundle --target=es2017 --outdir=../priv/static/assets --external:/fonts/* --external:/images/*),
+      ~w(js/app.ts --bundle --target=es2017 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/*),
     cd: Path.expand("../apps/blackbeard_web/assets", __DIR__),
     env: %{"NODE_PATH" => Path.expand("../deps", __DIR__)}
   ]
@@ -54,7 +54,7 @@ config :tailwind,
     args: ~w(
       --config=tailwind.config.js
       --input=css/app.css
-      --output=../priv/static/assets/app.css
+      --output=../priv/static/assets/css/app.css
     ),
     cd: Path.expand("../apps/blackbeard_web/assets", __DIR__)
   ]

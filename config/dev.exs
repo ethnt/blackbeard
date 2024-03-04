@@ -2,13 +2,10 @@ import Config
 
 # Configure your database
 config :blackbeard, Blackbeard.Repo,
-  username: "postgres",
-  password: "postgres",
-  hostname: "localhost",
-  database: "blackbeard_dev",
+  database: Path.expand("../db/blackbeard_dev.db", Path.dirname(__ENV__.file)),
+  pool_size: 5,
   stacktrace: true,
-  show_sensitive_data_on_connection_error: true,
-  pool_size: 10
+  show_sensitive_data_on_connection_error: true
 
 # For development, we disable any cache and enable
 # debugging and code reloading.
@@ -51,6 +48,16 @@ config :blackbeard_web, BlackbeardWeb.Endpoint,
 # If desired, both `http:` and `https:` keys can be
 # configured to run both http and https servers on
 # different ports.
+
+# Watch static and templates for browser reloading.
+config :blackbeard_web, BlackbeardWeb.Endpoint,
+  live_reload: [
+    patterns: [
+      ~r"priv/static/(?!uploads/).*(js|css|png|jpeg|jpg|gif|svg)$",
+      ~r"priv/gettext/.*(po)$",
+      ~r"lib/blackbeard_web/(controllers|live|components|views|templates)/.*(ex|heex)$"
+    ]
+  ]
 
 # Enable dev routes for dashboard and mailbox
 config :blackbeard_web, dev_routes: true
