@@ -1,4 +1,4 @@
-import { PhoenixLiveSocket } from "./lib/liveSocket"
+import { PhoenixLiveSocket } from "./lib/liveSocket";
 
 const liveSocket = new PhoenixLiveSocket();
 

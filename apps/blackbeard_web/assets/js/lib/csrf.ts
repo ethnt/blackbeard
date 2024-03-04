@@ -4,4 +4,4 @@ export const getCSRFToken = () => {
   if (meta) {
     return meta.getAttribute("content");
   }
-}
+};
