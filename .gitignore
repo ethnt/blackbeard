@@ -22,4 +22,20 @@ erl_crash.dump
 # Temporary files, for example, from tests.
 /tmp/
 
+# SQLite
+/db/
 
+# direnv
+/.direnv/
+
+# devenv
+/.devenv/
+
+# Elixir
+/.elixir/
+
+# Elixir Language Server
+/.elixir_ls/
+
+# Dialyzer PLTs
+/priv/plts/

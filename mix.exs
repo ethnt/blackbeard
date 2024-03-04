@@ -7,7 +7,8 @@ defmodule Blackbeard.Umbrella.MixProject do
       version: "0.1.0",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      dialyzer: dialyzer()
     ]
   end
 
@@ -24,7 +25,11 @@ defmodule Blackbeard.Umbrella.MixProject do
   # Dependencies listed here are available only for this project
   # and cannot be accessed from applications inside the apps/ folder.
   defp deps do
-    []
+    [
+      {:phoenix_live_view, ">= 0.0.0"},
+      {:credo, "~> 1.7.4", only: [:dev, :test], runtime: false},
+      {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}
+    ]
   end
 
   # Aliases are shortcuts or tasks specific to the current project.
@@ -40,6 +45,18 @@ defmodule Blackbeard.Umbrella.MixProject do
     [
       # run `mix setup` in all child apps
       setup: ["cmd mix setup"]
+    ]
+  end
+
+  # Dialyzer configuration
+  defp dialyzer do
+    [
+      flags: [:unmatched_returns, :error_handling, :underspecs],
+      plt_add_apps: [:mix],
+      plt_core_path: "priv/plts",
+      plt_file: {:no_warn, "priv/plts/blackbeard.plt"},
+      ignore_warnings: ".dialyzer_ignore.exs",
+      format: "dialyxir"
     ]
   end
 end
