@@ -6,6 +6,7 @@ defmodule Blackbeard.Repo.Migrations.CreateUsers do
       add :name, :string, null: false
       add :email, :string, null: false
       add :hashed_password, :string, null: false
+      add :role, :string, default: "user"
       add :confirmed_at, :naive_datetime
 
       timestamps()

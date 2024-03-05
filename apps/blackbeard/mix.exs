@@ -42,7 +42,9 @@ defmodule Blackbeard.MixProject do
       {:ecto_sqlite3, ">= 0.0.0"},
       {:jason, "~> 1.2"},
       {:swoosh, "~> 1.5"},
-      {:finch, "~> 0.13"}
+      {:finch, "~> 0.13"},
+      {:argon2_elixir, "~> 4.0.0"},
+      {:ex_machina, "~> 2.7.0"}
     ]
   end
 

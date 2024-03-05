@@ -5,6 +5,6 @@ defmodule BlackbeardWeb.LayoutView do
   def title(page_title) do
     [page_title, "Blackbeard"]
     |> Enum.filter(&(!is_nil(&1)))
-    |> Enum.join(" - ")
+    |> Enum.join(" • ")
   end
 end

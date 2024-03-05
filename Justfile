@@ -13,8 +13,8 @@ setup:
 console:
     iex -S mix
 
-pnpm *ARGS:
-    cd {{ js_dir }}; pnpm {{ ARGS }}
+pnpm *args:
+    cd {{ js_dir }}; pnpm {{ args }}
 
 style: format lint
 
@@ -29,11 +29,20 @@ credo:
 eslint:
     cd {{ js_dir }}; pnpm eslint .
 
-dialyzer:
-    mix dialyzer
+dialyzer *args:
+    mix dialyzer {{ args }}
 
 test:
     MIX_ENV=test mix do ecto.setup, test
+
+debug-test:
+    MIX_ENV=test iex -S mix do ecto.setup, test
+
+generate-coverage:
+    MIX_ENV=test mix do ecto.setup, test --cover --export-coverage default
+
+coverage: generate-coverage
+    mix test.coverage
 
 server:
     mix phx.server

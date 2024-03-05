@@ -26,6 +26,7 @@ defmodule Blackbeard.DataCase do
       import Ecto.Changeset
       import Ecto.Query
       import Blackbeard.DataCase
+      import Blackbeard.Factory
     end
   end
 
