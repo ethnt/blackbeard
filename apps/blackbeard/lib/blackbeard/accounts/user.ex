@@ -39,6 +39,40 @@ defmodule Blackbeard.Accounts.User do
     |> validate_password(opts)
   end
 
+  @spec update_changeset(%User{}, map()) :: Ecto.Changeset.t()
+  def update_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:name])
+    |> validate_required([:name])
+  end
+
+  @spec confirm_changeset(%User{} | Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  def confirm_changeset(user) do
+    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
+
+    change(user, confirmed_at: now)
+  end
+
+  @spec update_email_changeset(%User{} | Ecto.Changeset.t(), map()) :: Ecto.Changeset.t()
+  def update_email_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:email])
+    |> validate_email()
+    |> case do
+      %{changes: %{email: _}} = changeset -> changeset
+      %{} = changeset -> add_error(changeset, :email, "did not change")
+    end
+  end
+
+  @spec update_password_changeset(%User{} | Ecto.Changeset.t(), map(), hash_password: boolean()) ::
+          Ecto.Changeset.t()
+  def update_password_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_confirmation(:password, message: "does not match password")
+    |> validate_password(opts)
+  end
+
   @spec validate_email(Ecto.Changeset.t()) :: Ecto.Changeset.t()
   defp validate_email(changeset) do
     changeset
@@ -87,5 +121,14 @@ defmodule Blackbeard.Accounts.User do
   def valid_password?(_, _) do
     Argon2.no_user_verify()
     false
+  end
+
+  @spec validate_current_password(Ecto.Changeset.t(), String.t()) :: Ecto.Changeset.t()
+  def validate_current_password(changeset, password) do
+    if valid_password?(changeset.data, password) do
+      changeset
+    else
+      add_error(changeset, :current_password, "is not correct")
+    end
   end
 end
