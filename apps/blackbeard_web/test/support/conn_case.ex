@@ -26,7 +26,8 @@ defmodule BlackbeardWeb.ConnCase do
 
       # Import conveniences for testing with connections
       import Plug.Conn
-      import Phoenix.ConnTest
+      import Phoenix.ConnTest, except: [get_flash: 1, get_flash: 2]
+      import Blackbeard.Factory
       import BlackbeardWeb.ConnCase
     end
   end
@@ -34,5 +35,26 @@ defmodule BlackbeardWeb.ConnCase do
   setup tags do
     Blackbeard.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
+  end
+
+  def login_user(conn, user) do
+    {:ok, encoded_token} = Blackbeard.Accounts.create_user_session_token(user)
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:user_token, encoded_token)
+  end
+
+  @spec get_flash(Plug.Conn.t()) :: struct() | nil
+  def get_flash(conn) do
+    if flash_map = conn.assigns.flash do
+      for {key, val} <- flash_map, into: %{} do
+        {String.to_atom(key), val}
+      end
+    end
+  end
+
+  def get_flash(conn, key) do
+    get_flash(conn)[key]
   end
 end

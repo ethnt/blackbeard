@@ -1,6 +1,8 @@
 defmodule BlackbeardWeb.Router do
   use BlackbeardWeb, :router
 
+  import BlackbeardWeb.Authentication
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +10,7 @@ defmodule BlackbeardWeb.Router do
     plug :put_root_layout, html: {BlackbeardWeb.LayoutView, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_user
   end
 
   pipeline :api do
@@ -15,9 +18,18 @@ defmodule BlackbeardWeb.Router do
   end
 
   scope "/", BlackbeardWeb do
-    pipe_through :browser
+    pipe_through [:browser, :require_unauthenticated_user]
+
+    get "/login", SessionsController, :new
+    post "/login", SessionsController, :create
+  end
+
+  scope "/", BlackbeardWeb do
+    pipe_through [:browser, :require_authenticated_user]
 
     get "/", DashboardController, :index
+
+    get "/logout", SessionsController, :destroy
   end
 
   scope "/api", BlackbeardWeb do

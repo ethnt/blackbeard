@@ -32,8 +32,8 @@ eslint:
 dialyzer *args:
     mix dialyzer {{ args }}
 
-test:
-    MIX_ENV=test mix do ecto.setup, test
+test *args:
+    MIX_ENV=test mix do ecto.setup, test {{ args }}
 
 debug-test:
     MIX_ENV=test iex -S mix do ecto.setup, test
