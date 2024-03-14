@@ -5,7 +5,12 @@ defmodule Blackbeard.Policies.AccountsPolicyTest do
   alias Blackbeard.Policies.AccountsPolicy
 
   setup do
-    %{admin: insert(:admin), user: insert(:user), other: insert(:user)}
+    %{
+      admin: insert(:admin),
+      user: insert(:user),
+      other: insert(:user),
+      invited: insert(:user, %{hashed_password: nil})
+    }
   end
 
   describe "user" do

@@ -1,4 +1,6 @@
 defmodule Blackbeard.Policies.AccountsPolicy do
+  @moduledoc false
+
   @behaviour Blackbeard.Policy
 
   alias Blackbeard.Accounts
@@ -8,7 +10,11 @@ defmodule Blackbeard.Policies.AccountsPolicy do
           Blackbeard.Policy.action(),
           Blackbeard.Accounts.User.t()
         ) :: :ok | {:error, any()}
-  def can?(%Accounts.User{role: :user, id: current_user_id}, action, %Accounts.User{id: user_id})
+  def can?(
+        %Accounts.User{role: :user, id: current_user_id},
+        action,
+        %Accounts.User{id: user_id}
+      )
       when action in [:read, :update, :destroy] and current_user_id == user_id,
       do: :ok
 
