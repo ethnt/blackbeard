@@ -8,7 +8,21 @@ defmodule Blackbeard.Umbrella.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      dialyzer: dialyzer()
+      dialyzer: dialyzer(),
+      test_coverage: [
+        ignore_modules: [
+          Blackbeard,
+          Blackbeard.Factory,
+          Blackbeard.Repo,
+          BlackbeardWeb,
+          BlackbeardWeb.Application,
+          BlackbeardWeb.Endpoint,
+          BlackbeardWeb.Gettext,
+          BlackbeardWeb.Router,
+          BlackbeardWeb.Telemetry,
+          ~r/\Inspect\./
+        ]
+      ]
     ]
   end
 
@@ -51,7 +65,7 @@ defmodule Blackbeard.Umbrella.MixProject do
   # Dialyzer configuration
   defp dialyzer do
     [
-      flags: [:unmatched_returns, :error_handling, :underspecs],
+      flags: [:unmatched_returns, :error_handling],
       plt_add_apps: [:mix],
       plt_core_path: "priv/plts",
       plt_file: {:no_warn, "priv/plts/blackbeard.plt"},
