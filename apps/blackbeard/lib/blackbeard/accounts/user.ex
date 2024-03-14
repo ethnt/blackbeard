@@ -9,10 +9,10 @@ defmodule Blackbeard.Accounts.User do
 
   @type t :: %__MODULE__{
           id: integer(),
-          name: String.t(),
+          name: String.t() | nil,
           email: String.t(),
           password: String.t() | nil,
-          hashed_password: String.t(),
+          hashed_password: String.t() | nil,
           role: :user | :admin,
           confirmed_at: NaiveDateTime.t() | nil,
           inserted_at: NaiveDateTime.t(),
@@ -37,6 +37,25 @@ defmodule Blackbeard.Accounts.User do
     |> validate_required([:name])
     |> validate_email()
     |> validate_password(opts)
+  end
+
+  @spec invite_changeset(%User{}, map()) :: Ecto.Changeset.t()
+  def invite_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:email])
+    |> validate_email()
+  end
+
+  @doc """
+  To accept invite
+  """
+  @spec setup_changeset(%User{} | Ecto.Changeset.t(), map(), hash_password: boolean()) :: Ecto.Changeset.t()
+  def setup_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:name, :password])
+    |> validate_required([:name])
+    |> validate_password(opts)
+    |> confirm_changeset()
   end
 
   @spec update_changeset(%User{}, map()) :: Ecto.Changeset.t()
@@ -130,5 +149,10 @@ defmodule Blackbeard.Accounts.User do
     else
       add_error(changeset, :current_password, "is not correct")
     end
+  end
+
+  @spec setup?(User.t()) :: boolean()
+  def setup?(%User{confirmed_at: confirmed_at, hashed_password: hashed_password}) do
+    confirmed_at && hashed_password
   end
 end

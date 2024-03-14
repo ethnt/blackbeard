@@ -22,6 +22,9 @@ defmodule BlackbeardWeb.Router do
 
     get "/login", SessionsController, :new
     post "/login", SessionsController, :create
+
+    get "/invite/:id", UsersInviteController, :edit
+    patch "/invite/:id", UsersInviteController, :update
   end
 
   scope "/", BlackbeardWeb do
@@ -30,6 +33,9 @@ defmodule BlackbeardWeb.Router do
     get "/", DashboardController, :index
 
     get "/logout", SessionsController, :destroy
+
+    get "/users", UsersController, :index
+    get "/users/new", UsersController, :new
   end
 
   scope "/api", BlackbeardWeb do

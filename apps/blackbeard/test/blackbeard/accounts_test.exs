@@ -10,6 +10,19 @@ defmodule Blackbeard.AccountsTest do
     %{user: insert(:user)}
   end
 
+  describe "list_users/0" do
+    setup do
+      %{users: insert_list(5, :user)}
+    end
+
+    test "returns all users" do
+      listed_users = Accounts.list_users()
+
+      # The 5 inserted plus the 1 from the whole test setup
+      assert Enum.count(listed_users) == 6
+    end
+  end
+
   describe "find_user_by_id!/1" do
     test "returns user", %{user: user} do
       assert %User{} = returned_user = Accounts.find_user_by_id!(user.id)
@@ -572,6 +585,172 @@ defmodule Blackbeard.AccountsTest do
     test "deletes the session token", %{encoded_token: encoded_token} do
       assert Accounts.destroy_session_token(encoded_token) == :ok
       refute Accounts.find_user_by_session_token(encoded_token)
+    end
+  end
+
+  describe "create_invited_user/1" do
+    test "requires an email" do
+      {:error, changeset} = Accounts.create_invited_user(%{})
+
+      assert "can't be blank" in errors_on(changeset).email
+    end
+
+    test "requires an email be less than 160 characters" do
+      {:error, changeset} = Accounts.create_invited_user(%{email: String.duplicate("a", 175)})
+
+      assert "should be at most 160 character(s)" in errors_on(changeset).email
+    end
+
+    test "requires an email be formatted correctly" do
+      {:error, changeset} = Accounts.create_invited_user(%{email: "no"})
+
+      assert "must have an @ sign and no spaces" in errors_on(changeset).email
+    end
+
+    test "requires an email be unique", %{user: user} do
+      {:error, changeset} = Accounts.create_invited_user(%{email: user.email})
+
+      assert "has already been taken" in errors_on(changeset).email
+    end
+
+    test "creates a user" do
+      email = "user#{System.unique_integer()}@example.com"
+
+      {:ok, user} =
+        Accounts.create_invited_user(%{
+          email: email
+        })
+
+      assert user.email == email
+      assert is_nil(user.name)
+      assert is_nil(user.hashed_password)
+      assert is_nil(user.confirmed_at)
+      assert is_nil(user.password)
+    end
+  end
+
+  describe "create_invited_user_changeset/2" do
+    test "returns a changeset" do
+      assert %Ecto.Changeset{} = changeset = Accounts.create_invited_user_changeset(%User{})
+      assert changeset.required == [:email]
+    end
+  end
+
+  describe "create_user_invite_token/1" do
+    setup do
+      %{invited_user: insert(:user, %{name: nil, confirmed_at: nil, hashed_password: nil})}
+    end
+
+    test "errors when given a set up user", %{user: user} do
+      assert {:error, :already_setup} = Accounts.create_user_invite_token(user)
+    end
+
+    test "returns a token", %{invited_user: user} do
+      {:ok, token} = Accounts.create_user_invite_token(user)
+
+      assert is_binary(token)
+    end
+
+    test "creates a user token", %{invited_user: user} do
+      {:ok, encoded_token} = Accounts.create_user_invite_token(user)
+
+      token =
+        with {:ok, decoded_token} <- UserToken.decode_token(encoded_token) do
+          :crypto.hash(:blake2b, decoded_token)
+        end
+
+      assert user_token = Repo.get_by(UserToken, token: token)
+      assert user_token.user_id == user.id
+      assert user_token.sent_to == user.email
+      assert user_token.context == "invite"
+    end
+  end
+
+  describe "deliver_user_invitation_instructions/2" do
+    setup do
+      invited_user = insert(:user, %{confirmed_at: nil})
+
+      %{invited_user: invited_user}
+    end
+
+    test "returns an email struct", %{invited_user: user} do
+      assert {:ok, %Swoosh.Email{}} =
+               Accounts.deliver_user_invitation_instructions(user, fn url -> url end)
+    end
+
+    test "returns an email with the link in the body", %{invited_user: user} do
+      with {:ok, %Swoosh.Email{} = email} <-
+             Accounts.deliver_user_invitation_instructions(user, fn url ->
+               "[TOKEN]#{url}[TOKEN]"
+             end),
+           [_, encoded_token | _] <- String.split(email.text_body, "[TOKEN]"),
+           {:ok, token} <- UserToken.decode_token(encoded_token),
+           hashed_token <-
+             UserToken.hash_token(token) do
+        assert user_token = Repo.get_by(UserToken, token: hashed_token)
+        assert user_token.user_id == user.id
+        assert user_token.sent_to == user.email
+        assert user_token.context == "invite"
+      end
+    end
+  end
+
+  describe "setup_user/2" do
+    setup do
+      invited_user = insert(:user, %{confirmed_at: nil, hashed_password: nil})
+      {:ok, encoded_token} = Accounts.create_user_invite_token(invited_user)
+
+      %{invited_user: invited_user, encoded_token: encoded_token}
+    end
+
+    test "returns an error with a malformed token" do
+      assert :error = Accounts.setup_user("no", %{})
+    end
+
+    test "returns an error with an expired token", %{encoded_token: encoded_token} do
+      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+
+      assert Accounts.setup_user(encoded_token, %{}) == :error
+    end
+
+    test "requires a password", %{encoded_token: encoded_token} do
+      {:error, changeset} = Accounts.setup_user(encoded_token, %{})
+
+      assert "can't be blank" in errors_on(changeset).password
+    end
+
+    test "requires a password to be 8 or more characters", %{encoded_token: encoded_token} do
+      {:error, changeset} = Accounts.setup_user(encoded_token, %{password: "no"})
+
+      assert "should be at least 8 character(s)" in errors_on(changeset).password
+    end
+
+    test "requires a password to be less than 72 characters", %{encoded_token: encoded_token} do
+      {:error, changeset} =
+        Accounts.setup_user(encoded_token, %{password: String.duplicate("a", 75)})
+
+      assert "should be at most 72 character(s)" in errors_on(changeset).password
+    end
+
+    test "sets the user's information", %{
+      invited_user: user,
+      encoded_token: encoded_token
+    } do
+      {:ok, %User{} = setup_user} =
+        Accounts.setup_user(encoded_token, %{name: "Blackbeard", password: "blackbeard123"})
+
+      assert setup_user.id == user.id
+      assert setup_user.confirmed_at
+      assert setup_user.name
+      assert setup_user.hashed_password
+    end
+
+    test "deletes the token", %{encoded_token: encoded_token} do
+      with {:ok, _} <-
+             Accounts.setup_user(encoded_token, %{name: "Blackbeard", password: "blackbeard123"}),
+           {:ok, token} <- UserToken.decode_token(encoded_token) do
+        refute Repo.get_by(UserToken, token: token)
+      end
     end
   end
 end

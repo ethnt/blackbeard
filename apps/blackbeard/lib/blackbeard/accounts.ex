@@ -1,8 +1,15 @@
 defmodule Blackbeard.Accounts do
   @moduledoc false
 
+  import Ecto.Query
+
   alias Blackbeard.Accounts.{User, UserMailer, UserToken}
   alias Blackbeard.Repo
+
+  @spec list_users() :: [User.t()]
+  def list_users do
+    Repo.all(from User, order_by: [asc: :name])
+  end
 
   @doc """
   Find a user by their ID, erroring if not found
@@ -53,7 +60,7 @@ defmodule Blackbeard.Accounts do
   end
 
   @doc """
-  Creates a new, unconfirmed user
+  Creates a new user
   """
   @spec create_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
   def create_user(attrs) do
@@ -68,6 +75,53 @@ defmodule Blackbeard.Accounts do
   @spec create_user_changeset(%User{}, map()) :: Ecto.Changeset.t()
   def create_user_changeset(%User{} = user, attrs \\ %{}) do
     User.create_changeset(user, attrs, hash_password: false)
+  end
+
+  @doc """
+  Creates a new invited user
+  """
+  @spec create_invited_user(map()) :: {:ok, User.t()} | {:error, Ecto.Changeset.t()}
+  def create_invited_user(attrs) do
+    %User{}
+    |> User.invite_changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Returns a changeset for tracking changes to user invites
+  """
+  @spec create_invited_user_changeset(%User{}, map()) :: Ecto.Changeset.t()
+  def create_invited_user_changeset(%User{} = user, attrs \\ %{}) do
+    User.invite_changeset(user, attrs)
+  end
+
+  @spec create_user_invite_token(User.t()) ::
+          {:ok, UserToken.encoded_token()} | :error | {:error, :already_setup}
+  def create_user_invite_token(user) do
+    if User.setup?(user) do
+      {:error, :already_setup}
+    else
+      with {token, user_token} <- UserToken.build_email_token(user, "invite"),
+           encoded_token <- UserToken.encode_token(token) do
+        case Repo.insert(user_token) do
+          {:ok, _} -> {:ok, encoded_token}
+          _ -> :error
+        end
+      end
+    end
+  end
+
+  @doc """
+  Create a confirmation token and deliver the user confirmation email
+  """
+  @spec deliver_user_invitation_instructions(User.t(), (any() -> any())) ::
+          {:ok, Swoosh.Email.t()} | {:error, any()}
+  def deliver_user_invitation_instructions(%User{} = user, url_builder)
+      when is_function(url_builder, 1) do
+    with {:ok, encoded_token} <- create_user_invite_token(user),
+         url <- url_builder.(encoded_token) do
+      UserMailer.deliver_invitation_instructions(user, url)
+    end
   end
 
   @doc """
@@ -220,6 +274,28 @@ defmodule Blackbeard.Accounts do
          url <- url_builder.(encoded_token) do
       UserMailer.deliver_confirmation_instructions(user, url)
     end
+  end
+
+  @spec setup_user(UserToken.encoded_token(), map()) ::
+          {:ok, User.t()} | {:error, Ecto.Changeset.t()} | :error
+  def setup_user(invite_token, attrs) do
+    with {:ok, token} <- UserToken.decode_token(invite_token),
+         query <- UserToken.verify_email_token_query(token, "invite"),
+         %User{} = user <- Repo.one(query),
+         {:ok, %{user: user}} <-
+           Repo.transaction(setup_user_transaction(user, attrs)) do
+      {:ok, user}
+    else
+      {:error, :user, %Ecto.Changeset{} = changeset, _} -> {:error, changeset}
+      _ -> :error
+    end
+  end
+
+  @spec setup_user_transaction(User.t(), map()) :: Ecto.Multi.t()
+  defp setup_user_transaction(user, attrs) do
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:user, User.setup_changeset(user, attrs))
+    |> Ecto.Multi.delete_all(:tokens, UserToken.find_by_user_and_context_query(user, ["invite"]))
   end
 
   @doc """

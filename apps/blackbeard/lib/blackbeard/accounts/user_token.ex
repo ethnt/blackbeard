@@ -12,6 +12,7 @@ defmodule Blackbeard.Accounts.UserToken do
 
   @reset_password_validity_in_days 1
   @confirm_validity_in_days 7
+  @invite_validity_in_days 7
   @session_validity_in_days 60
   @change_email_validity_in_days 7
 
@@ -160,4 +161,5 @@ defmodule Blackbeard.Accounts.UserToken do
 
   defp days_for_context("confirm"), do: @confirm_validity_in_days
   defp days_for_context("reset_password"), do: @reset_password_validity_in_days
+  defp days_for_context("invite"), do: @invite_validity_in_days
 end

@@ -34,6 +34,20 @@ defmodule Blackbeard.Accounts.UserMailer do
     """)
   end
 
+  @spec deliver_invitation_instructions(User.t(), String.t()) ::
+          {:ok, Swoosh.Email.t()} | {:error, any()}
+  def deliver_invitation_instructions(user, url) do
+    deliver(user.email, "Blackbeard: Invitation instructions", """
+    Hi,
+
+    You can confirm your Blackbeard account by visiting the URL below:
+
+    #{url}
+
+    If you didn't create an account with us, ignore this email.
+    """)
+  end
+
   @spec deliver_reset_password_instructions(User.t(), String.t()) ::
           {:ok, Swoosh.Email.t()} | {:error, any()}
   def deliver_reset_password_instructions(user, url) do
