@@ -14,7 +14,6 @@ defmodule Blackbeard.Accounts.User do
           password: String.t() | nil,
           hashed_password: String.t() | nil,
           role: :user | :admin,
-          confirmed_at: NaiveDateTime.t() | nil,
           inserted_at: NaiveDateTime.t(),
           updated_at: NaiveDateTime.t() | nil
         }
@@ -25,7 +24,6 @@ defmodule Blackbeard.Accounts.User do
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :role, Ecto.Enum, values: [:user, :admin], default: :user
-    field :confirmed_at, :naive_datetime
 
     timestamps()
   end
@@ -49,13 +47,13 @@ defmodule Blackbeard.Accounts.User do
   @doc """
   To accept invite
   """
-  @spec setup_changeset(%User{} | Ecto.Changeset.t(), map(), hash_password: boolean()) :: Ecto.Changeset.t()
+  @spec setup_changeset(%User{} | Ecto.Changeset.t(), map(), hash_password: boolean()) ::
+          Ecto.Changeset.t()
   def setup_changeset(user, attrs, opts \\ []) do
     user
     |> cast(attrs, [:name, :password])
     |> validate_required([:name])
     |> validate_password(opts)
-    |> confirm_changeset()
   end
 
   @spec update_changeset(%User{}, map()) :: Ecto.Changeset.t()
@@ -63,13 +61,6 @@ defmodule Blackbeard.Accounts.User do
     user
     |> cast(attrs, [:name])
     |> validate_required([:name])
-  end
-
-  @spec confirm_changeset(%User{} | Ecto.Changeset.t()) :: Ecto.Changeset.t()
-  def confirm_changeset(user) do
-    now = NaiveDateTime.utc_now() |> NaiveDateTime.truncate(:second)
-
-    change(user, confirmed_at: now)
   end
 
   @spec update_email_changeset(%User{} | Ecto.Changeset.t(), map()) :: Ecto.Changeset.t()
@@ -149,10 +140,5 @@ defmodule Blackbeard.Accounts.User do
     else
       add_error(changeset, :current_password, "is not correct")
     end
-  end
-
-  @spec setup?(User.t()) :: boolean()
-  def setup?(%User{confirmed_at: confirmed_at, hashed_password: hashed_password}) do
-    confirmed_at && hashed_password
   end
 end

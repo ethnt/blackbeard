@@ -8,8 +8,7 @@ defmodule Blackbeard.Factory do
     %Blackbeard.Accounts.User{
       name: "Calico Jack",
       email: sequence(:email, &"email-#{&1}@blackbeard.video"),
-      hashed_password: Argon2.hash_pwd_salt("blackbeard123"),
-      confirmed_at: ~N[2024-02-29 09:00:00]
+      hashed_password: Argon2.hash_pwd_salt("blackbeard123")
     }
   end
 

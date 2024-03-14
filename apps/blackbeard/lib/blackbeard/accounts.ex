@@ -98,7 +98,7 @@ defmodule Blackbeard.Accounts do
   @spec create_user_invite_token(User.t()) ::
           {:ok, UserToken.encoded_token()} | :error | {:error, :already_setup}
   def create_user_invite_token(user) do
-    if User.setup?(user) do
+    if user.hashed_password do
       {:error, :already_setup}
     else
       with {token, user_token} <- UserToken.build_email_token(user, "invite"),
@@ -112,7 +112,7 @@ defmodule Blackbeard.Accounts do
   end
 
   @doc """
-  Create a confirmation token and deliver the user confirmation email
+  Create a invite token and deliver the user invitation email
   """
   @spec deliver_user_invitation_instructions(User.t(), (any() -> any())) ::
           {:ok, Swoosh.Email.t()} | {:error, any()}
@@ -163,10 +163,7 @@ defmodule Blackbeard.Accounts do
   end
 
   defp update_user_email_transaction(user, email, context) do
-    changeset =
-      user
-      |> User.update_email_changeset(%{email: email})
-      |> User.confirm_changeset()
+    changeset = User.update_email_changeset(user, %{email: email})
 
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, changeset)
@@ -242,40 +239,6 @@ defmodule Blackbeard.Accounts do
     User.update_password_changeset(user, attrs, hash_password: false)
   end
 
-  @doc """
-  Creates a hashed token for use in a confirmation email. Returns just the encoded token, not the UserToken struct
-  """
-  @spec create_user_confirmation_token(User.t()) ::
-          {:error, :already_confirmed}
-          | :error
-          | {:ok, UserToken.encoded_token()}
-  def create_user_confirmation_token(user) do
-    if user.confirmed_at do
-      {:error, :already_confirmed}
-    else
-      with {token, user_token} <- UserToken.build_email_token(user, "confirm"),
-           encoded_token <- UserToken.encode_token(token) do
-        case Repo.insert(user_token) do
-          {:ok, _} -> {:ok, encoded_token}
-          _ -> :error
-        end
-      end
-    end
-  end
-
-  @doc """
-  Create a confirmation token and deliver the user confirmation email
-  """
-  @spec deliver_user_confirmation_instructions(User.t(), (any() -> any())) ::
-          {:ok, Swoosh.Email.t()} | {:error, any()}
-  def deliver_user_confirmation_instructions(%User{} = user, url_builder)
-      when is_function(url_builder, 1) do
-    with {:ok, encoded_token} <- create_user_confirmation_token(user),
-         url <- url_builder.(encoded_token) do
-      UserMailer.deliver_confirmation_instructions(user, url)
-    end
-  end
-
   @spec setup_user(UserToken.encoded_token(), map()) ::
           {:ok, User.t()} | {:error, Ecto.Changeset.t()} | :error
   def setup_user(invite_token, attrs) do
@@ -296,28 +259,6 @@ defmodule Blackbeard.Accounts do
     Ecto.Multi.new()
     |> Ecto.Multi.update(:user, User.setup_changeset(user, attrs))
     |> Ecto.Multi.delete_all(:tokens, UserToken.find_by_user_and_context_query(user, ["invite"]))
-  end
-
-  @doc """
-  Confirms a user based on an unhashed token
-  """
-  @spec confirm_user(UserToken.encoded_token()) :: {:ok, User.t()} | :error
-  def confirm_user(encoded_token) do
-    with {:ok, token} <- UserToken.decode_token(encoded_token),
-         query <- UserToken.verify_email_token_query(token, "confirm"),
-         %User{} = user <- Repo.one(query),
-         {:ok, %{user: user}} <- Repo.transaction(confirm_user_transaction(user)) do
-      {:ok, user}
-    else
-      _ -> :error
-    end
-  end
-
-  @spec confirm_user_transaction(User.t()) :: Ecto.Multi.t()
-  defp confirm_user_transaction(user) do
-    Ecto.Multi.new()
-    |> Ecto.Multi.update(:user, User.confirm_changeset(user))
-    |> Ecto.Multi.delete_all(:tokens, UserToken.find_by_user_and_context_query(user, ["confirm"]))
   end
 
   @doc """

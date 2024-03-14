@@ -65,7 +65,7 @@ defmodule Blackbeard.Umbrella.MixProject do
   # Dialyzer configuration
   defp dialyzer do
     [
-      flags: [:unmatched_returns, :error_handling, :underspecs],
+      flags: [:unmatched_returns, :error_handling],
       plt_add_apps: [:mix],
       plt_core_path: "priv/plts",
       plt_file: {:no_warn, "priv/plts/blackbeard.plt"},

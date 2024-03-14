@@ -49,3 +49,7 @@ server:
 
 routes:
     mix phx.routes BlackbeardWeb.Router
+
+reset-database:
+    mix do ecto.drop, ecto.setup
+    MIX_ENV=test mix do ecto.drop, ecto.setup

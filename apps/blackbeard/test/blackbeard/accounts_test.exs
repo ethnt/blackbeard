@@ -178,7 +178,6 @@ defmodule Blackbeard.AccountsTest do
       assert user.name == "Foobar"
       assert user.email == email
       assert is_binary(user.hashed_password)
-      assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
     end
   end
@@ -233,8 +232,6 @@ defmodule Blackbeard.AccountsTest do
       changed_user = Repo.get!(User, user.id)
       assert changed_user.email != user.email
       assert changed_user.email == email
-      assert changed_user.confirmed_at
-      assert changed_user.confirmed_at != user.confirmed_at
       refute Repo.get_by(UserToken, user_id: user.id)
     end
 
@@ -377,102 +374,6 @@ defmodule Blackbeard.AccountsTest do
       assert changeset.valid?
       assert get_change(changeset, :password) == "new valid password"
       assert is_nil(get_change(changeset, :hashed_password))
-    end
-  end
-
-  describe "create_user_confirmation_token/1" do
-    setup do
-      %{unconfirmed_user: insert(:user, %{confirmed_at: nil})}
-    end
-
-    test "returns an error if the user is already confirmed", %{user: user} do
-      assert user.confirmed_at
-      assert {:error, :already_confirmed} = Accounts.create_user_confirmation_token(user)
-    end
-
-    test "returns a token", %{unconfirmed_user: user} do
-      {:ok, token} = Accounts.create_user_confirmation_token(user)
-
-      assert is_binary(token)
-    end
-
-    test "creates a user token", %{unconfirmed_user: user} do
-      {:ok, encoded_token} = Accounts.create_user_confirmation_token(user)
-
-      token =
-        with {:ok, decoded_token} <- UserToken.decode_token(encoded_token) do
-          :crypto.hash(:blake2b, decoded_token)
-        end
-
-      assert user_token = Repo.get_by(UserToken, token: token)
-      assert user_token.user_id == user.id
-      assert user_token.sent_to == user.email
-      assert user_token.context == "confirm"
-    end
-  end
-
-  describe "deliver_user_confirmation_instructions/2" do
-    setup do
-      unconfirmed_user = insert(:user, %{confirmed_at: nil})
-
-      %{unconfirmed_user: unconfirmed_user}
-    end
-
-    test "returns an email struct", %{unconfirmed_user: user} do
-      assert {:ok, %Swoosh.Email{}} =
-               Accounts.deliver_user_confirmation_instructions(user, fn url -> url end)
-    end
-
-    test "returns an email with the link in the body", %{unconfirmed_user: user} do
-      with {:ok, %Swoosh.Email{} = email} <-
-             Accounts.deliver_user_confirmation_instructions(user, fn url ->
-               "[TOKEN]#{url}[TOKEN]"
-             end),
-           [_, encoded_token | _] <- String.split(email.text_body, "[TOKEN]"),
-           {:ok, token} <- UserToken.decode_token(encoded_token),
-           hashed_token <-
-             UserToken.hash_token(token) do
-        assert user_token = Repo.get_by(UserToken, token: hashed_token)
-        assert user_token.user_id == user.id
-        assert user_token.sent_to == user.email
-        assert user_token.context == "confirm"
-      end
-    end
-  end
-
-  describe "confirm_user/1" do
-    setup do
-      unconfirmed_user = insert(:user, %{confirmed_at: nil})
-      {:ok, encoded_token} = Accounts.create_user_confirmation_token(unconfirmed_user)
-
-      %{unconfirmed_user: unconfirmed_user, encoded_token: encoded_token}
-    end
-
-    test "returns an error with a malformed token" do
-      assert :error = Accounts.confirm_user("no")
-    end
-
-    test "returns an error with an expired token", %{encoded_token: encoded_token} do
-      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
-
-      assert Accounts.confirm_user(encoded_token) == :error
-    end
-
-    test "sets the user's confirmation timestamp", %{
-      unconfirmed_user: user,
-      encoded_token: encoded_token
-    } do
-      {:ok, %User{} = confirmed_user} = Accounts.confirm_user(encoded_token)
-
-      assert confirmed_user.id == user.id
-      assert confirmed_user.confirmed_at
-    end
-
-    test "deletes the token", %{encoded_token: encoded_token} do
-      with {:ok, _} <- Accounts.confirm_user(encoded_token),
-           {:ok, token} <- UserToken.decode_token(encoded_token) do
-        refute Repo.get_by(UserToken, token: token)
-      end
     end
   end
 
@@ -624,7 +525,6 @@ defmodule Blackbeard.AccountsTest do
       assert user.email == email
       assert is_nil(user.name)
       assert is_nil(user.hashed_password)
-      assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
     end
   end
@@ -638,7 +538,7 @@ defmodule Blackbeard.AccountsTest do
 
   describe "create_user_invite_token/1" do
     setup do
-      %{invited_user: insert(:user, %{name: nil, confirmed_at: nil, hashed_password: nil})}
+      %{invited_user: insert(:user, %{name: nil, hashed_password: nil})}
     end
 
     test "errors when given a set up user", %{user: user} do
@@ -668,7 +568,7 @@ defmodule Blackbeard.AccountsTest do
 
   describe "deliver_user_invitation_instructions/2" do
     setup do
-      invited_user = insert(:user, %{confirmed_at: nil})
+      invited_user = insert(:user, %{hashed_password: nil})
 
       %{invited_user: invited_user}
     end
@@ -697,7 +597,7 @@ defmodule Blackbeard.AccountsTest do
 
   describe "setup_user/2" do
     setup do
-      invited_user = insert(:user, %{confirmed_at: nil, hashed_password: nil})
+      invited_user = insert(:user, %{hashed_password: nil})
       {:ok, encoded_token} = Accounts.create_user_invite_token(invited_user)
 
       %{invited_user: invited_user, encoded_token: encoded_token}
@@ -740,7 +640,6 @@ defmodule Blackbeard.AccountsTest do
         Accounts.setup_user(encoded_token, %{name: "Blackbeard", password: "blackbeard123"})
 
       assert setup_user.id == user.id
-      assert setup_user.confirmed_at
       assert setup_user.name
       assert setup_user.hashed_password
     end

@@ -11,7 +11,6 @@ defmodule Blackbeard.Accounts.UserToken do
   @rand_size 32
 
   @reset_password_validity_in_days 1
-  @confirm_validity_in_days 7
   @invite_validity_in_days 7
   @session_validity_in_days 60
   @change_email_validity_in_days 7
@@ -49,7 +48,8 @@ defmodule Blackbeard.Accounts.UserToken do
   @doc """
   Generate a token that will be stored in a unsigned place (email). If anyone gets this token, they won't be able to use
   it to gain access. The hashed version is in the database and the unhashed version is sent to the user. When the user
-  confirms, they will send the unhashed version -- we will hash their input and match against ours in the database
+  acceps the invite, they will send the unhashed version -- we will hash their input and match against ours in the
+  database
   """
   @spec build_email_token(User.t(), String.t()) :: {token(), %UserToken{}}
   def build_email_token(%User{email: email} = user, context) do
@@ -159,7 +159,6 @@ defmodule Blackbeard.Accounts.UserToken do
     :crypto.hash(@hash_algorithm, token)
   end
 
-  defp days_for_context("confirm"), do: @confirm_validity_in_days
   defp days_for_context("reset_password"), do: @reset_password_validity_in_days
   defp days_for_context("invite"), do: @invite_validity_in_days
 end
