@@ -21,7 +21,7 @@ jobs:
           authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
           extraPullNames: blackbeard,nix-community
       - run: nix develop --impure --command just install
-      - run: nix develop --impure --command treefmt --fail-on-change --no-cache
+      - run: nix develop --impure --command format --fail-on-change --no-cache
       - run: nix develop --impure --command just credo
 
   test:
