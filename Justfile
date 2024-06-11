@@ -19,8 +19,8 @@ test *args:
 dialyzer *args:
     mix dialyzer {{ args }}
 
-format:
-    treefmt
+format *args:
+    treefmt {{ args }}
 
 lint: credo
 
