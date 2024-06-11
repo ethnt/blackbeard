@@ -22,7 +22,7 @@ jobs:
           extraPullNames: blackbeard,nix-community
       - run: nix develop --impure --command just install
       - run: nix develop --impure --command just format --fail-on-change --no-cache
-      - run: nix develop --impure --command just credo
+      - run: nix develop --impure --command just lint
 
   test:
     name: Run tests

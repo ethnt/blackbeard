@@ -70,7 +70,10 @@
           programs = {
             deadnix.enable = true;
             nixfmt.enable = true;
-            prettier.enable = true;
+            prettier = {
+              enable = true;
+              excludes = [ "pnpm-lock.yaml" ];
+            };
           };
           settings.formatter = {
             elixir = {
