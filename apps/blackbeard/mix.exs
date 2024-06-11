@@ -36,13 +36,15 @@ defmodule Blackbeard.MixProject do
   # Type `mix help deps` for examples and options.
   defp deps do
     [
+      {:ex_machina, "~> 2.7.0", only: [:dev, :test]},
+      {:bcrypt_elixir, "~> 3.0"},
       {:dns_cluster, "~> 0.1.1"},
-      {:phoenix_pubsub, "~> 2.1"},
       {:ecto_sql, "~> 3.10"},
       {:ecto_sqlite3, ">= 0.0.0"},
+      {:finch, "~> 0.13"},
       {:jason, "~> 1.2"},
+      {:phoenix_pubsub, "~> 2.1"},
       {:swoosh, "~> 1.5"},
-      {:finch, "~> 0.13"}
     ]
   end
 
