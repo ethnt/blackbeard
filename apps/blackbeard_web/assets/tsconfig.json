@@ -3,9 +3,6 @@
     "noImplicitAny": true,
     "module": "CommonJS",
     "target": "ES6",
-    "lib": [
-      "ES2023",
-      "DOM"
-    ],
-  },
+    "lib": ["ES2023", "DOM"]
+  }
 }

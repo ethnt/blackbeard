@@ -3,7 +3,9 @@ import { LiveSocket } from "phoenix_live_view";
 
 import topbar from "topbar";
 
-const csrfToken = document.querySelector("meta[name='csrf-token']")?.getAttribute("content");
+import { getCSRFToken } from "./lib/csrf";
+
+const csrfToken = getCSRFToken();
 
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
