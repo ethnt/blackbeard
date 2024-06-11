@@ -44,7 +44,7 @@ defmodule Blackbeard.MixProject do
       {:finch, "~> 0.13"},
       {:jason, "~> 1.2"},
       {:phoenix_pubsub, "~> 2.1"},
-      {:swoosh, "~> 1.5"},
+      {:swoosh, "~> 1.5"}
     ]
   end
 
