@@ -38,6 +38,7 @@ defmodule Blackbeard.Accounts.UserToken do
 
   @invite_validity_in_days 7
   @session_validity_in_days 60
+  @reset_password_validity_in_days 1
 
   schema "user_tokens" do
     field :token, :binary
@@ -136,12 +137,12 @@ defmodule Blackbeard.Accounts.UserToken do
   end
 
   @spec generate_token() :: token()
-  defp generate_token do
+  def generate_token do
     :crypto.strong_rand_bytes(@rand_size)
   end
 
   @spec hash_token(token()) :: hashed_token()
-  defp hash_token(token) do
+  def hash_token(token) do
     :crypto.hash(@hash_algorithm, token)
   end
 
@@ -156,4 +157,5 @@ defmodule Blackbeard.Accounts.UserToken do
   end
 
   defp days_for_context("invite"), do: @invite_validity_in_days
+  defp days_for_context("reset_password"), do: @reset_password_validity_in_days
 end

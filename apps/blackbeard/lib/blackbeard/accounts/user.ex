@@ -36,7 +36,7 @@ defmodule Blackbeard.Accounts.User do
   def invite_changeset(user, attrs) do
     user
     |> cast(attrs, [:email])
-    |> validate_email(validate_email: true)
+    |> validate_email()
   end
 
   @doc """
@@ -48,28 +48,39 @@ defmodule Blackbeard.Accounts.User do
     |> cast(attrs, [:name, :password])
     |> validate_required([:name])
     |> validate_password(hash_password: true)
-    |> validate_confirmation(:password)
+    |> validate_confirmation(:password, message: "does not match password")
   end
 
-  @spec validate_email(Ecto.Changeset.t(), keyword()) :: Ecto.Changeset.t()
-  defp validate_email(changeset, opts) do
+  @doc """
+  Changeset for updating user attributes (excluding password)
+  """
+  @spec update_changeset(User.t(), map()) :: Ecto.Changeset.t()
+  def update_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:name, :email])
+    |> validate_required([:name])
+    |> validate_email()
+  end
+
+  @doc """
+  Changeset for updating the password
+  """
+  @spec update_password_changeset(User.t(), map()) :: Ecto.Changeset.t()
+  def update_password_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:password])
+    |> validate_confirmation(:password, message: "does not match password")
+    |> validate_password(hash_password: true)
+  end
+
+  @spec validate_email(Ecto.Changeset.t()) :: Ecto.Changeset.t()
+  defp validate_email(changeset) do
     changeset
     |> validate_required([:email])
     |> validate_format(:email, ~r/^[^\s]+@[^\s]+$/, message: "must have an @ sign and no spaces")
     |> validate_length(:email, max: 160)
     |> unsafe_validate_unique(:email, Blackbeard.Repo)
-    |> maybe_validate_unique_email(opts)
-  end
-
-  @spec maybe_validate_unique_email(Ecto.Changeset.t(), keyword()) :: Ecto.Changeset.t()
-  defp maybe_validate_unique_email(changeset, opts) do
-    if Keyword.get(opts, :validate_email, true) do
-      changeset
-      |> unsafe_validate_unique(:email, Blackbeard.Repo)
-      |> unique_constraint(:email)
-    else
-      changeset
-    end
+    |> unique_constraint(:email)
   end
 
   @spec validate_password(Ecto.Changeset.t(), list()) :: Ecto.Changeset.t()

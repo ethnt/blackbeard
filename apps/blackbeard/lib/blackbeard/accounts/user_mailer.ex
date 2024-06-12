@@ -39,4 +39,24 @@ defmodule Blackbeard.Accounts.UserMailer do
     ==============================
     """)
   end
+
+  @doc """
+  Deliver instructions to reset password
+  """
+  @spec deliver_reset_password_instructions(User.t(), String.t()) ::
+          {:ok, Swoosh.Email.t()} | {:error, any()}
+  def deliver_reset_password_instructions(user, url) do
+    deliver(user.email, "Blackbeard: Reset password", """
+
+    ==============================
+
+    Hi #{user.email},
+
+    You can reset your password by visiting the URL below:
+
+    #{url}
+
+    ==============================
+    """)
+  end
 end
