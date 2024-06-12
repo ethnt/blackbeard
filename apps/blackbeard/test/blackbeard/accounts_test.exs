@@ -8,6 +8,8 @@ defmodule Blackbeard.AccountsTest do
     %{user: insert(:user)}
   end
 
+  ### Finders
+
   describe "list_users/1" do
     setup do
       %{users: insert_list(5, :user)}
@@ -33,30 +35,77 @@ defmodule Blackbeard.AccountsTest do
     end
   end
 
-  describe "find_user_by_invite_token/1" do
-    setup do
-      email = build(:user).email
+  describe "find_user_by_email/1" do
+    test "returns nil with no results" do
+      refute Accounts.find_user_by_email("no")
+    end
 
-      {:ok, %{token: invite_token, user: invited_user}} =
-        Accounts.invite_user(%{email: email}, fn url -> url end)
+    test "returns a matching user", %{user: %{id: id, email: email}} do
+      %User{id: ^id} = Accounts.find_user_by_email(email)
+    end
+  end
 
-      %{invite_token: invite_token, invited_user: invited_user}
+  describe "find_user_by_email_and_password/2" do
+    test "returns nil with no matching email" do
+      refute Accounts.find_user_by_email_and_password("no", "no")
+    end
+
+    test "returns nil with no matching password", %{user: user} do
+      refute Accounts.find_user_by_email_and_password(user.email, "no")
+    end
+
+    test "returns a matching user", %{user: %{id: id, email: email}} do
+      %User{id: ^id} = Accounts.find_user_by_email_and_password(email, "blackbeard123")
+    end
+  end
+
+  ### Sessions
+
+  describe "find_user_by_session_token/1" do
+    setup %{user: user} do
+      token = Accounts.create_user_session_token(user)
+
+      %{token: token}
     end
 
     test "returns nil with no matching token" do
-      refute Accounts.find_user_by_invite_token("no")
+      refute Accounts.find_user_by_session_token("no")
     end
 
-    test "returns nil if token is expired", %{invite_token: invite_token} do
+    test "returns nil with an expired token", %{token: token} do
       {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
 
-      refute Accounts.find_user_by_invite_token(invite_token)
+      refute Accounts.find_user_by_session_token(token)
     end
 
-    test "returns a user", %{invite_token: invite_token, invited_user: %User{id: id}} do
-      assert %User{id: ^id} = Accounts.find_user_by_invite_token(invite_token)
+    test "returns a matching user", %{user: %{id: id}, token: token} do
+      assert %User{id: ^id} = Accounts.find_user_by_session_token(token)
     end
   end
+
+  describe "create_user_session_token/1" do
+    test "creates a token", %{user: user} do
+      token = Accounts.create_user_session_token(user)
+      assert user_token = Repo.get_by(UserToken, token: token)
+      assert user_token.context == "session"
+    end
+  end
+
+  describe "destroy_user_session_token/1" do
+    setup %{user: user} do
+      token = Accounts.create_user_session_token(user)
+
+      %{token: token}
+    end
+
+    test "destroys the token", %{token: token} do
+      Accounts.destroy_user_session_token(token)
+
+      refute Repo.get_by(UserToken, token: token)
+    end
+  end
+
+  ### Invitations
 
   describe "invite_user/2" do
     test "requires an email" do
@@ -110,6 +159,33 @@ defmodule Blackbeard.AccountsTest do
       assert Repo.get_by(UserToken, user_id: user_id, context: "invite")
     end
   end
+
+  describe "find_user_by_invite_token/1" do
+    setup do
+      email = build(:user).email
+
+      {:ok, %{token: invite_token, user: invited_user}} =
+        Accounts.invite_user(%{email: email}, fn url -> url end)
+
+      %{invite_token: invite_token, invited_user: invited_user}
+    end
+
+    test "returns nil with no matching token" do
+      refute Accounts.find_user_by_invite_token("no")
+    end
+
+    test "returns nil if token is expired", %{invite_token: invite_token} do
+      {1, nil} = Repo.update_all(UserToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+
+      refute Accounts.find_user_by_invite_token(invite_token)
+    end
+
+    test "returns a user", %{invite_token: invite_token, invited_user: %User{id: id}} do
+      assert %User{id: ^id} = Accounts.find_user_by_invite_token(invite_token)
+    end
+  end
+
+  ### Setup
 
   describe "setup_user/2" do
     setup do

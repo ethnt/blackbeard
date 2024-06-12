@@ -4,6 +4,8 @@ defmodule Blackbeard.Accounts do
   alias Blackbeard.Accounts.{User, UserMailer, UserToken}
   alias Blackbeard.Repo
 
+  ### Finders
+
   @doc """
   List users, with optional query parameters
   """
@@ -20,14 +22,55 @@ defmodule Blackbeard.Accounts do
   def find_user_by_id!(id), do: Repo.get!(User, id)
 
   @doc """
-  Finds a user by invite token
+  Find a user by their email
   """
-  @spec find_user_by_invite_token(UserToken.encoded_token()) :: User.t() | nil
-  def find_user_by_invite_token(token) do
-    {:ok, query} = UserToken.verify_email_token_query(token, "invite")
+  @spec find_user_by_email(String.t()) :: User.t() | nil
+  def find_user_by_email(email) when is_binary(email) do
+    Repo.get_by(User, email: email)
+  end
+
+  @doc """
+  Find a user by their email and password (authenticate the user)
+  """
+  @spec find_user_by_email_and_password(String.t(), String.t()) :: User.t() | nil
+  def find_user_by_email_and_password(email, password)
+      when is_binary(email) and is_binary(password) do
+    user = find_user_by_email(email)
+    if User.valid_password?(user, password), do: user
+  end
+
+  ### Sessions
+
+  @doc """
+  Find a user by their session token
+  """
+  @spec find_user_by_session_token(UserToken.token()) :: User.t() | nil
+  def find_user_by_session_token(token) do
+    {:ok, query} = UserToken.verify_session_token_query(token)
 
     Repo.one(query)
   end
+
+  @doc """
+  Create and store a user session token
+  """
+  @spec create_user_session_token(User.t()) :: UserToken.token()
+  def create_user_session_token(user) do
+    {token, user_token} = UserToken.build_session_token(user)
+    Repo.insert!(user_token)
+    token
+  end
+
+  @doc """
+  Destroy a user session token
+  """
+  @spec destroy_user_session_token(UserToken.token()) :: :ok
+  def destroy_user_session_token(token) do
+    Repo.delete_all(UserToken.find_by_token_and_context_query(token, "session"))
+    :ok
+  end
+
+  ### Invitations
 
   @doc """
   Sends an invite to a user by creating the user with just an email address, creating an invite token, and sending the
@@ -72,6 +115,18 @@ defmodule Blackbeard.Accounts do
   def invite_user_changeset(%User{} = user, attrs \\ %{}) do
     User.invite_changeset(user, attrs)
   end
+
+  @doc """
+  Finds a user by invite token
+  """
+  @spec find_user_by_invite_token(UserToken.encoded_token()) :: User.t() | nil
+  def find_user_by_invite_token(token) do
+    {:ok, query} = UserToken.verify_email_token_query(token, "invite")
+
+    Repo.one(query)
+  end
+
+  ### Setup (accepting invites)
 
   @doc """
   Sets up a new user given their invite token and the rest of their information (name and password)

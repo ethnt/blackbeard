@@ -37,6 +37,7 @@ defmodule Blackbeard.Accounts.UserToken do
   @rand_size 32
 
   @invite_validity_in_days 7
+  @session_validity_in_days 60
 
   schema "user_tokens" do
     field :token, :binary
@@ -46,6 +47,15 @@ defmodule Blackbeard.Accounts.UserToken do
     timestamps(updated_at: false)
 
     belongs_to :user, User
+  end
+
+  @doc """
+  Builds a token that will be stored in a signed place, such as a session or cookie
+  """
+  @spec build_session_token(User.t()) :: {token(), %UserToken{}}
+  def build_session_token(user) do
+    token = generate_token()
+    {token, %UserToken{token: token, context: "session", user_id: user.id}}
   end
 
   @doc """
@@ -97,6 +107,21 @@ defmodule Blackbeard.Accounts.UserToken do
     end
   end
 
+  @doc """
+  Checks if a token is valid and returns a query that will return the user associated with that session token
+  """
+  @spec verify_session_token_query(token()) :: {:ok, Ecto.Query.t()}
+  def verify_session_token_query(token) do
+    query =
+      from token in find_by_token_and_context_query(token, "session"),
+        join: user in assoc(token, :user),
+        where: token.inserted_at > ago(@session_validity_in_days, "day"),
+        select: user
+
+    {:ok, query}
+  end
+
+  @spec find_by_user_and_contexts_query(User.t(), :all | list()) :: Ecto.Query.t()
   def find_by_user_and_contexts_query(user, :all) do
     from t in UserToken, where: t.user_id == ^user.id
   end
